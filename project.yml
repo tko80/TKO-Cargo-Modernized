@@ -1,0 +1,59 @@
+
+name: TKO
+
+options:
+  bundleIdPrefix: com.tinwinko
+  deploymentTarget:
+    iOS: "16.0"
+
+targets:
+  TKO:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: TKO/App
+
+    postBuildScripts:
+      - name: Copy TKO WebApp into App Bundle
+        script: |
+          set -e
+
+          WEB_SOURCE="${SRCROOT}/TKO/WebApp"
+          WEB_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/WebApp"
+
+          echo "Checking TKO WebApp..."
+
+          if [ ! -f "${WEB_SOURCE}/index.html" ]; then
+            echo "ERROR: Source index.html is missing!"
+            exit 1
+          fi
+
+          mkdir -p "$(dirname "${WEB_DEST}")"
+          rm -rf "${WEB_DEST}"
+          mkdir -p "${WEB_DEST}"
+
+          cp -R "${WEB_SOURCE}/." "${WEB_DEST}/"
+
+          if [ ! -f "${WEB_DEST}/index.html" ]; then
+            echo "ERROR: index.html copy failed!"
+            exit 1
+          fi
+
+          echo "SUCCESS: TKO WebApp copied."
+          ls -la "${WEB_DEST}"
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tinwinko.tko.ios
+        PRODUCT_NAME: TKO
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_CFBundleDisplayName: TKO
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
+        INFOPLIST_KEY_UIFileSharingEnabled: YES
+        INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
