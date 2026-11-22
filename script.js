@@ -3583,35 +3583,7 @@ function toggleTotals() {
         button.textContent = "Show Totals";
     }
 }
-function appendCalc(val) {
-    const display = document.getElementById("calc-display");
-    if (val === '×') val = '*';
-    if (val === '÷') val = '/';
-    display.value += val;
-  }
-
-
-  
-  function calculateResult() {
-    const display = document.getElementById("calc-display");
-    try {
-      display.value = eval(display.value);
-    } catch {
-      display.value = "Error";
-    }
-  }
-
-
-  function toggleCalculator(show = true) {
-    document.getElementById("calculator-popup").style.display = show ? "flex" : "none";
-  }
-  
-  function copyResult() {
-    const display = document.getElementById("calc-display");
-    navigator.clipboard.writeText(display.value).then(() => {
-      alert("📋 Result Copied!");
-    });
-  }
+/* Obsolete calculator-popup functions removed; the single #calculator popup in index.html is used. */
   function backupDateEntriesToClipboard() {
     const selectedDate = document.getElementById("date").value;
     let entries = JSON.parse(localStorage.getItem("entries")) || [];
