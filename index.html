@@ -4724,6 +4724,15 @@ document.querySelectorAll('.dropdown-menu button, .dropdown-menu div').forEach(i
 
   window.tkoCalcOperator=function(op){
     resetAfterError();
+    // After '=', continue from the displayed result (iPhone calculator behavior).
+    // Do not append the previous expression text such as "8500*5 =".
+    if(justEvaluated){
+      expr=current+op;
+      current='0';
+      justEvaluated=false;
+      render();
+      return;
+    }
     if(expr && /[+\-*/]$/.test(expr)) expr=expr.slice(0,-1)+op;
     else expr=(expr?expr:'')+current+op;
     current='0';
@@ -4732,6 +4741,8 @@ document.querySelectorAll('.dropdown-menu button, .dropdown-menu div').forEach(i
   };
 
   window.tkoCalcEquals=function(){
+    // Pressing '=' again after a completed result should not evaluate display text.
+    if(justEvaluated) return;
     resetAfterError();
     const formula=(expr?expr:'')+current;
     if(!formula.trim()) return;
