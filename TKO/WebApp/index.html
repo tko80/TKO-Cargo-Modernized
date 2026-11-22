@@ -14394,6 +14394,64 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 })();
 </script>
 
+
+<script id="tko-calculator-history-fix">
+(function(){
+  const KEY='tkoCalculatorHistory_v1';
+  let current='0', stored=0, first=null, op=null, waiting=false;
+  const $=id=>document.getElementById(id);
+  function display(v, expr){
+    current=String(v);
+    const d=$('calc-display'); if(d) d.textContent=current;
+    const e=$('tkoCalcExpression'); if(e)e.textContent=expr||'';
+  }
+  function history(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
+  function saveHistory(expr,result){
+    const rows=history();
+    rows.unshift({expr,result:String(result),time:new Date().toISOString()});
+    localStorage.setItem(KEY,JSON.stringify(rows.slice(0,100)));
+  }
+  function renderHistory(){
+    let panel=$('tkoCalcHistoryPanel');
+    if(!panel){
+      panel=document.createElement('div'); panel.id='tkoCalcHistoryPanel';
+      panel.style.cssText='display:none;position:absolute;inset:86px 8px 8px;background:#fff;z-index:5;border-radius:12px;padding:14px;overflow:auto;box-shadow:0 4px 18px #0003;color:#222';
+      const win=document.querySelector('#calculator .tko-calc-window'); if(win){win.appendChild(panel);win.style.position='relative'}
+    }
+    const rows=history();
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b>History</b><button type="button" id="tkoCalcClearHistory" style="border:0;background:#eee;border-radius:8px;padding:8px 12px">Clear</button></div>'+
+      (rows.length?rows.map((r,i)=>'<button type="button" data-history="'+i+'" style="display:block;width:100%;text-align:right;background:#f7f7f7;border:0;border-radius:8px;padding:12px;margin:7px 0;color:#222"><div style="font-size:13px;color:#777">'+escapeHtml(r.expr)+'</div><strong style="font-size:20px">'+escapeHtml(r.result)+'</strong><div style="font-size:10px;color:#999">'+new Date(r.time).toLocaleString()+'</div></button>').join(''):'<p style="text-align:center;color:#888">No history yet</p>');
+    panel.querySelector('#tkoCalcClearHistory').onclick=()=>{localStorage.removeItem(KEY);renderHistory()};
+    panel.querySelectorAll('[data-history]').forEach(b=>b.onclick=()=>{const r=history()[Number(b.dataset.history)];if(r){display(r.result,r.expr);panel.style.display='none'}});
+  }
+  function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  window.tkoCalcToggleHistory=function(){renderHistory();const p=$('tkoCalcHistoryPanel');p.style.display=p.style.display==='none'?'block':'none'};
+  window.tkoCalcToggleMenu=function(){const m=$('tkoCalcMenu');if(m)m.style.display=m.style.display==='none'?'block':'none'};
+  window.tkoCalcDigit=function(n){if(waiting){current='0';waiting=false}current=current==='0'?String(n):current+String(n);display(current)};
+  window.tkoCalcDecimal=function(){if(waiting){current='0';waiting=false}if(!current.includes('.'))current+='.';display(current)};
+  window.tkoCalcClear=function(){first=null;op=null;waiting=false;display('0')};
+  window.tkoCalcClearEntry=function(){display('0')};
+  window.tkoCalcBackspace=function(){if(waiting)return;current=current.length>1?current.slice(0,-1):'0';if(current==='-')current='0';display(current)};
+  window.tkoCalcToggleSign=function(){if(Number(current)!==0)current=String(-Number(current));display(current)};
+  window.tkoCalcOperator=function(next){const v=Number(current);if(!Number.isFinite(v))return;if(first!==null&&op&&!waiting){const r=calculate(first,v,op);if(r===null)return;first=r;display(r)}else first=v;op=next;waiting=true;const symbol=({'+':'+','-':'−','*':'×','/':'÷'})[next];const e=$('tkoCalcExpression');if(e)e.textContent=String(first)+' '+symbol};
+  function calculate(a,b,o){if(o==='+')return a+b;if(o==='-')return a-b;if(o==='*')return a*b;if(o==='/')return b===0?null:a/b;return b}
+  window.tkoCalcEquals=function(){if(first===null||!op)return;const a=first,b=Number(current),o=op,r=calculate(a,b,o);if(r===null){display('Error','Cannot divide by zero');first=null;op=null;return}const symbol=({'+':'+','-':'−','*':'×','/':'÷'})[o];const expr=a+' '+symbol+' '+b+' =';saveHistory(expr,r);display(Number(r.toPrecision(12)),expr);first=null;op=null;waiting=true};
+  function unary(label,fn){const v=Number(current),r=fn(v);if(!Number.isFinite(r)){display('Error',label);return}const out=Number(r.toPrecision(12));saveHistory(label+'('+v+')',out);display(out,label+'('+v+')')}
+  window.tkoCalcPercent=()=>unary('%',v=>v/100);
+  window.tkoCalcReciprocal=()=>unary('1/x',v=>1/v);
+  window.tkoCalcSquare=()=>unary('square',v=>v*v);
+  window.tkoCalcSqrt=()=>unary('√',v=>v<0?NaN:Math.sqrt(v));
+  window.tkoCalcMemoryClear=()=>{stored=0};
+  window.tkoCalcMemoryRecall=()=>display(stored,'MR');
+  window.tkoCalcMemoryAdd=()=>{stored+=Number(current)||0};
+  window.tkoCalcMemorySubtract=()=>{stored-=Number(current)||0};
+  window.tkoCalcMemoryStore=()=>{stored=Number(current)||0};
+  window.tkoCalcMemoryView=()=>alert('Memory: '+stored);
+  window.openCalculator=(function(old){return function(){if(old)old();const box=$('calculator');if(box){box.style.display='flex';box.classList.add('tko-calculator-open')}display('0')}})(window.openCalculator);
+  window.closeCalculator=function(){const box=$('calculator');if(box){box.style.display='none';box.classList.remove('tko-calculator-open')}};
+})();
+</script>
+
 </body>
 </html>
 
